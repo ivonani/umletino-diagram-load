@@ -74,7 +74,7 @@
       const base64Content = btoa(svgContent);
 
       // Build GitHub API URL for creating/updating a file
-      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${FILE_PATH}`;
 
       // Prepare the payload
       const payload = {
