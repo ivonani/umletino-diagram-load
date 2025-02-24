@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SVG Uploader Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 14px;
+      word-break: break-all;
+      padding: 10px;
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>SVG Uploader Demo</h1>
+  <p>Enter your GitHub token and click the button below to save a static SVG file to your GitHub repository. The URL for the saved SVG will be displayed below.</p>
+  
+  <label for="tokenInput">GitHub Token:</label>
+  <input type="password" id="tokenInput" placeholder="Enter your GitHub token">
+  
+  <button id="saveButton">Save SVG to GitHub</button>
+  <div id="result"></div>
+
+  <script>
+    // --- Configuration --- 
+    // Update these values with your GitHub details:
+    const REPO_OWNER = 'ivonani';  // Replace with your GitHub username
+    const REPO_NAME = 'umletino-diagram-load';         // Replace with your repository name
+    const FILE_PATH = 'diagram.svg';      // Path where the SVG will be saved in the repo
+    const COMMIT_MESSAGE = 'Add diagram.svg via widget';
+
+    // --- Static SVG content ---
+    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+      <circle cx="100" cy="100" r="80" fill="green" />
+      <text x="100" y="110" font-size="30" text-anchor="middle" fill="white">SVG</text>
+    </svg>`;
+
+    // --- Function to save SVG to GitHub ---
+    function saveSVG() {
+      // Get the GitHub token from the input field
+      const GITHUB_TOKEN = document.getElementById('tokenInput').value.trim();
+      if (!GITHUB_TOKEN) {
+        alert('Please enter your GitHub token.');
+        return;
+      }
+
+      // Base64 encode the SVG content
+      const base64Content = btoa(svgContent);
+
+      // Build GitHub API URL for creating/updating a file
+      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+
+      // Prepare the payload
+      const payload = {
+        message: COMMIT_MESSAGE,
+        content: base64Content
+      };
+
+      // Make the PUT request using fetch
+      fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        if (data.content && data.content.download_url) {
+          document.getElementById('result').innerText = 'SVG saved at: ' + data.content.download_url;
+        } else {
+          document.getElementById('result').innerText = 'Error saving SVG: ' + JSON.stringify(data);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('result').innerText = 'Error: ' + err.message;
+      });
+    }
+
+    // Attach event listener to the button
+    document.getElementById('saveButton').addEventListener('click', saveSVG);
+  </script>
+</body>
+</html>
