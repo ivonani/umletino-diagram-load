@@ -132,7 +132,7 @@
             const relativePath = pathParts.slice(2).join('/'); // "umletino-diagram-load/main/image.png"
             // Generate Markdown snippet:
             //const markdownSnippet = `![${FILE_PATH}](${downloadUrl})`;
-            const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${relativePath})`;
+            const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH})`;
             //(https://${username}.github.io/umletino-diagram-load/diagram.png)
             markdownOutput.value = markdownSnippet;
           } else {
