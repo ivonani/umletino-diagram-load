@@ -1,143 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>GitHub Image Uploader</title>
+  <meta charset="utf-8">
+  <title>Markdown URL for Diagram</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 0 auto;
       padding: 20px;
+      max-width: 600px;
+      margin: auto;
     }
-    label {
-      font-weight: bold;
-      margin-top: 10px;
-      display: block;
-    }
-    input, button, textarea {
+    textarea {
       width: 100%;
+      height: 100px;
+      font-size: 16px;
       padding: 10px;
       margin: 10px 0;
-      font-size: 16px;
-      box-sizing: border-box;
     }
     button {
+      padding: 10px 20px;
+      font-size: 16px;
       background-color: #4CAF50;
       color: white;
       border: none;
       cursor: pointer;
       border-radius: 4px;
     }
-    textarea {
-      height: 100px;
-    }
   </style>
 </head>
 <body>
-  <h1>Upload Image to GitHub</h1>
-  <p>
-    This application uses the URL path to determine the GitHub repository.
-    For example, if your URL ends with <code>/ivonani/umletino-diagram-load</code>, then:
-  </p>
-  <ul>
-    <li><strong>REPO_OWNER:</strong> ivonani</li>
-    <li><strong>REPO_NAME:</strong> umletino-diagram-load</li>
-  </ul>
-
-  <label for="tokenInput">GitHub Token:</label>
-  <input type="password" id="tokenInput" placeholder="Enter your GitHub token" />
-
-  <label for="fileInput">Select an Image:</label>
-  <input type="file" id="fileInput" accept="image/*" />
-
-  <button id="uploadButton">Upload Image</button>
-
-  <h2>Markdown Snippet</h2>
-  <textarea id="markdownOutput" readonly></textarea>
+  <h1>Markdown URL for Your Diagram</h1>
+  <p>Below is the markdown snippet for your diagram. You can copy and paste it into your GitHub Markdown documentation:</p>
+  <textarea id="markdownSnippet" readonly></textarea>
+  <br>
   <button id="copyButton">Copy to Clipboard</button>
 
   <script>
-    // --- Extract REPO_OWNER and REPO_NAME from the URL ---
-    // Expecting URL to end with "/{REPO_OWNER}/{REPO_NAME}"
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    if (pathParts.length < 2) {
-      alert("Error: The URL must end with /{REPO_OWNER}/{REPO_NAME}");
-      throw new Error("Invalid URL format");
-    }
-    const REPO_OWNER = pathParts[pathParts.length - 2];
-    const REPO_NAME = pathParts[pathParts.length - 1];
+    // Set your GitHub username here
+    const username = "ivonani";
+    // Assuming your repository is named 'umletino-diagram-load' and your image is at 'diagram.png'
+    const markdown = `![diagram.png](https://${username}.github.io/umletino-diagram-load/diagram.png)`;
+    document.getElementById("markdownSnippet").value = markdown;
 
-    // --- Get references to DOM elements ---
-    const tokenInput = document.getElementById("tokenInput");
-    const fileInput = document.getElementById("fileInput");
-    const uploadButton = document.getElementById("uploadButton");
-    const markdownOutput = document.getElementById("markdownOutput");
-    const copyButton = document.getElementById("copyButton");
-
-    // --- Upload Button Click Handler ---
-    uploadButton.addEventListener("click", () => {
-      const token = tokenInput.value.trim();
-      if (!token) {
-        alert("Please enter your GitHub token.");
-        return;
-      }
-      if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please select an image file.");
-        return;
-      }
-      const file = fileInput.files[0];
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        // e.target.result is a Data URL (e.g., "data:image/png;base64,....")
-        const dataUrl = e.target.result;
-        // Extract base64 content from Data URL:
-        const base64Index = dataUrl.indexOf("base64,") + "base64,".length;
-        const base64Content = dataUrl.substring(base64Index);
-        
-        // Use the file's name for the file path (or hard-code a name, e.g., "diagram.png")
-        const FILE_PATH = file.name;
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-        
-        // Prepare payload for GitHub API:
-        const payload = {
-          message: "Upload image via GitHub Image Uploader",
-          content: base64Content
-        };
-
-        // Send PUT request to GitHub API:
-        fetch(apiUrl, {
-          method: "PUT",
-          headers: {
-            "Authorization": "token " + token,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log(data);
-          if (data.content && data.content.download_url) {
-            const downloadUrl = data.content.download_url;
-            // Generate Markdown snippet:
-            const markdownSnippet = `![${FILE_PATH}](${downloadUrl})`;
-            markdownOutput.value = markdownSnippet;
-          } else {
-            alert("Error uploading image: " + JSON.stringify(data));
-          }
-        })
-        .catch(err => {
-          alert("Error: " + err.message);
-          console.error(err);
-        });
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // --- Copy to Clipboard Button ---
-    copyButton.addEventListener("click", () => {
-      markdownOutput.select();
+    document.getElementById("copyButton").addEventListener("click", () => {
+      const textarea = document.getElementById("markdownSnippet");
+      textarea.select();
       document.execCommand("copy");
       alert("Markdown snippet copied to clipboard!");
     });
