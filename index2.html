@@ -102,7 +102,9 @@
         
         // Use the file's name for the file path
         const FILE_PATH = file.name;
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        //const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        const apiUrl = `https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH}`;
+        //https://${username}.github.io/umletino-diagram-load/diagram.png
         console.log("API URL:", apiUrl);
         
         // Prepare payload for GitHub API:
