@@ -142,10 +142,10 @@
     // --- Function to Update Wiki via GitHub API ---
     function updateWiki(markdownSnippet, token) {
       // The wiki repository is typically named as {REPO_NAME}.wiki
-      const wikiRepo = `${REPO_OWNER}/${REPO_NAME}.wiki`;
       // Define the wiki page to update (e.g., Diagram.md)
       const pagePath = "Diagram.md";
-      const url = `https://api.github.com/repos/${wikiRepo}/contents/${pagePath}`;
+      const url = `https://github.com/${REPO_OWNER}/${REPO_NAME}.wiki.git`;
+      //https://github.com/ivonani/umletino-diagram-load.wiki.git
       // Base64-encode the markdown snippet
       const base64Content = btoa(markdownSnippet);
       
