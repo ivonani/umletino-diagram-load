@@ -38,12 +38,11 @@
   <h1>Upload Image to GitHub</h1>
   <p>
     This application uses the URL path to determine the GitHub repository.
-    For example, if your URL ends with <code>/ivonani/umletino-diagram-load</code>, then:
+    If your URL does not contain repository details, default values will be used.
   </p>
-  <ul>
-    <li><strong>REPO_OWNER:</strong> ivonani</li>
-    <li><strong>REPO_NAME:</strong> umletino-diagram-load</li>
-  </ul>
+  <p>
+    Defaults: <strong>REPO_OWNER:</strong> ivonani, <strong>REPO_NAME:</strong> umletino-diagram-load
+  </p>
 
   <label for="tokenInput">GitHub Token:</label>
   <input type="password" id="tokenInput" placeholder="Enter your GitHub token" />
@@ -58,15 +57,20 @@
   <button id="copyButton">Copy to Clipboard</button>
 
   <script>
-    // --- Extract REPO_OWNER and REPO_NAME from the URL ---
-    // Expecting URL to end with "/{REPO_OWNER}/{REPO_NAME}"
-    /*const pathParts = window.location.pathname.split('/').filter(Boolean);
-    if (pathParts.length < 2) {
-      alert("Error: The URL must end with /{REPO_OWNER}/{REPO_NAME}");
-      throw new Error("Invalid URL format");
-    }*/
-    const REPO_OWNER = "ivonani";
-    const REPO_NAME = "umletino-diagram-load";
+    // --- Attempt to extract REPO_OWNER and REPO_NAME from the URL ---
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    console.log("Path parts:", pathParts);
+
+    // Use defaults if extraction fails
+    let REPO_OWNER = "ivonani";
+    let REPO_NAME = "umletino-diagram-load";
+    if (pathParts.length >= 2) {
+      REPO_OWNER = pathParts[pathParts.length - 2];
+      REPO_NAME = pathParts[pathParts.length - 1];
+    } else {
+      console.warn("Using default repository details.");
+    }
+    console.log("Using REPO_OWNER:", REPO_OWNER, "and REPO_NAME:", REPO_NAME);
 
     // --- Get references to DOM elements ---
     const tokenInput = document.getElementById("tokenInput");
@@ -90,15 +94,16 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        // e.target.result is a Data URL (e.g., "data:image/png;base64,....")
+        // e.target.result is a Data URL (e.g., "data:image/png;base64,...")
         const dataUrl = e.target.result;
         // Extract base64 content from Data URL:
         const base64Index = dataUrl.indexOf("base64,") + "base64,".length;
         const base64Content = dataUrl.substring(base64Index);
         
-        // Use the file's name for the file path (or hard-code a name, e.g., "diagram.png")
+        // Use the file's name for the file path
         const FILE_PATH = file.name;
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${FILE_PATH}`;
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        console.log("API URL:", apiUrl);
         
         // Prepare payload for GitHub API:
         const payload = {
