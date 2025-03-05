@@ -127,8 +127,13 @@
           console.log(data);
           if (data.content && data.content.download_url) {
             const downloadUrl = data.content.download_url;
+            const urlObj = new URL(downloadUrl);
+            const pathParts = urlObj.pathname.split('/'); // [ "", "ivonani", "umletino-diagram-load", "main", "image.png" ]
+            const relativePath = pathParts.slice(2).join('/'); // "umletino-diagram-load/main/image.png"
             // Generate Markdown snippet:
-            const markdownSnippet = `![${FILE_PATH}](${downloadUrl})`;
+            //const markdownSnippet = `![${FILE_PATH}](${downloadUrl})`;
+            const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${relativePath})`;
+            //(https://${username}.github.io/umletino-diagram-load/diagram.png)
             markdownOutput.value = markdownSnippet;
           } else {
             alert("Error uploading image: " + JSON.stringify(data));
