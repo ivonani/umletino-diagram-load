@@ -70,7 +70,7 @@
     } else {
       console.warn("Using default repository details.");
     }
-    console.log("Using REPO_OWNER:", REPO_OWNER, "and REPO_NAME:", REPO_NAME);
+    console.log("Using repository:", REPO_OWNER, "/", REPO_NAME);
 
     // --- Get references to DOM elements ---
     const tokenInput = document.getElementById("tokenInput");
@@ -79,8 +79,129 @@
     const markdownOutput = document.getElementById("markdownOutput");
     const copyButton = document.getElementById("copyButton");
 
+
+    function uploadImage() {
+      const token = tokenInput.value.trim();
+      if (!token) {
+        alert("Please enter your GitHub token.");
+        return;
+      }
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert("Please select an image file.");
+        return;
+      }
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const base64Index = dataUrl.indexOf("base64,") + "base64,".length;
+        let base64Content = dataUrl.substring(base64Index);
+        // Clean the base64 string
+        base64Content = base64Content.replace(/\n/g, '').trim();
+
+        // Use the file's name as the target file path (you can also hard-code a filename)
+        const FILE_PATH = file.name;
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        console.log("Uploading to:", apiUrl);
+
+        const payload = {
+          message: "Upload image via Wiki Image Uploader",
+          content: base64Content
+        };
+
+        fetch(apiUrl, {
+          method: "PUT",
+          headers: {
+            "Authorization": "token " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Upload response:", data);
+          if (data.content && data.content.download_url) {
+            const downloadUrl = data.content.download_url;
+            // Generate the Markdown snippet for the uploaded image
+            const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH})`;
+            markdownOutput.value = markdownSnippet;
+            // Automatically update the wiki page with the snippet
+            updateWiki(markdownSnippet, token);
+          } else {
+            alert("Error uploading image: " + JSON.stringify(data));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error: " + err.message);
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // --- Function to Update Wiki via GitHub API ---
+    function updateWiki(markdownSnippet, token) {
+      // The wiki repository is typically named as {REPO_NAME}.wiki
+      const wikiRepo = `${REPO_OWNER}/${REPO_NAME}.wiki`;
+      // Define the wiki page to update (e.g., Diagram.md)
+      const pagePath = "Diagram.md";
+      const url = `https://api.github.com/repos/${wikiRepo}/contents/${pagePath}`;
+      // Base64-encode the markdown snippet
+      const base64Content = btoa(markdownSnippet);
+      
+      // First, try to GET the file to see if it exists (to get the current sha)
+      fetch(url, {
+        headers: {
+          "Authorization": "token " + token
+        }
+      })
+      .then(response => {
+        if (response.status === 200) {
+          return response.json();
+        } else if (response.status === 404) {
+          return null;
+        } else {
+          throw new Error("Error checking wiki file: " + response.status);
+        }
+      })
+      .then(data => {
+        const payload = {
+          message: "Update wiki with diagram markdown",
+          content: base64Content
+        };
+        if (data && data.sha) {
+          payload.sha = data.sha;
+        }
+        // Update (or create) the wiki page
+        return fetch(url, {
+          method: "PUT",
+          headers: {
+            "Authorization": "token " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Wiki update response:", data);
+        if (data.content && data.content.download_url) {
+          alert("Wiki updated! You can view it at: " + data.content.download_url);
+        } else {
+          alert("Error updating wiki: " + JSON.stringify(data));
+        }
+      })
+      .catch(err => {
+        console.error("Error updating wiki:", err);
+        alert("Error updating wiki: " + err.message);
+      });
+    }
+
+    // --- Attach event listeners ---
+    uploadButton.addEventListener("click", uploadImage);
+
     // --- Upload Button Click Handler ---
-    uploadButton.addEventListener("click", () => {
+    /*uploadButton.addEventListener("click", () => {
       const token = tokenInput.value.trim();
       if (!token) {
         alert("Please enter your GitHub token.");
@@ -99,6 +220,7 @@
         // Extract base64 content from Data URL:
         const base64Index = dataUrl.indexOf("base64,") + "base64,".length;
         const base64Content = dataUrl.substring(base64Index);
+        base64Content = base64Content.replace(/\n/g, '').trim();
         
         // Use the file's name for the file path
         const FILE_PATH = file.name;
@@ -127,9 +249,9 @@
           console.log(data);
           if (data.content && data.content.download_url) {
             const downloadUrl = data.content.download_url;
-            const urlObj = new URL(downloadUrl);
-            const pathParts = urlObj.pathname.split('/'); // [ "", "ivonani", "umletino-diagram-load", "main", "image.png" ]
-            const relativePath = pathParts.slice(2).join('/'); // "umletino-diagram-load/main/image.png"
+            //const urlObj = new URL(downloadUrl);
+            //const pathParts = urlObj.pathname.split('/'); // [ "", "ivonani", "umletino-diagram-load", "main", "image.png" ]
+            //const relativePath = pathParts.slice(2).join('/'); // "umletino-diagram-load/main/image.png"
             // Generate Markdown snippet:
             //const markdownSnippet = `![${FILE_PATH}](${downloadUrl})`;
             const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH})`;
@@ -145,7 +267,7 @@
         });
       };
       reader.readAsDataURL(file);
-    });
+    });*/
 
     // --- Copy to Clipboard Button ---
     copyButton.addEventListener("click", () => {
