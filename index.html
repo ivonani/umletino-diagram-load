@@ -143,12 +143,13 @@
     function updateWiki(markdownSnippet, token) {
       // The wiki repository is typically named as {REPO_NAME}.wiki
       // Define the wiki page to update (e.g., Diagram.md)
-      const pagePath = "Diagram.md";
-      const url = `https://github.com/${REPO_OWNER}/${REPO_NAME}.wiki.git`;
-      //https://github.com/ivonani/umletino-diagram-load.wiki.git
+      const pagePath = "Home.md";
+      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}.wiki/contents/${PAGE_PATH}`;
+      // https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}.wiki/contents/{PAGE_PATH}
+      // https://github.com/${REPO_OWNER}/${REPO_NAME}.wiki.git
       // Base64-encode the markdown snippet
       const base64Content = btoa(markdownSnippet);
-      
+
       // First, try to GET the file to see if it exists (to get the current sha)
       fetch(url, {
         headers: {
