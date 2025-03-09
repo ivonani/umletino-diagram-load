@@ -37,10 +37,6 @@
 <body>
   <h1>Upload Image to GitHub</h1>
   <p>
-    This application uses the URL path to determine the GitHub repository.
-    If your URL does not contain repository details, default values will be used.
-  </p>
-  <p>
     Defaults: <strong>REPO_OWNER:</strong> ivonani, <strong>REPO_NAME:</strong> umletino-diagram-load
   </p>
 
@@ -185,7 +181,7 @@
         if (data && data.sha) {
           payload.sha = data.sha;
         }
-        
+
         // Update (or create) the file with the new content.
         return fetch(url, {
           method: "PUT",
@@ -198,9 +194,9 @@
       })
       .then(response => response.json())
       .then(data => {
-        console.log("Wiki update response:", data);
+        console.log("File update response:", data);
         if (data.content && data.content.download_url) {
-          alert("Wiki updated! You can view it at: " + data.content.download_url);
+          alert("File updated! You can view it at: " + data.content.download_url);
         } else {
           alert("Error updating wiki: " + JSON.stringify(data));
         }
