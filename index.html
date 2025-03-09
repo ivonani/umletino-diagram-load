@@ -143,8 +143,8 @@
     function updateWiki(markdownSnippet, token) {
       // The wiki repository is typically named as {REPO_NAME}.wiki
       // Define the wiki page to update (e.g., Diagram.md)
-      const PAGE_PATH = "Home.md";
-      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}.wiki/contents/${PAGE_PATH}`;
+      const PAGE_PATH = "README.md";
+      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${PAGE_PATH}`;
       // https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}.wiki/contents/{PAGE_PATH}
       // https://github.com/${REPO_OWNER}/${REPO_NAME}.wiki.git
       // Base64-encode the markdown snippet
