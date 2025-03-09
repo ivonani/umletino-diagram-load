@@ -141,14 +141,13 @@
 
     // --- Function to Update Wiki via GitHub API ---
     function updateWiki(markdownSnippet, token) {
-      // The wiki repository is typically named as {REPO_NAME}.wiki
-      // Define the wiki page to update (e.g., Diagram.md)
+      // The wiki page we want to update is, for example, README.md.
       const PAGE_PATH = "README.md";
       const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${PAGE_PATH}`;
       // https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}.wiki/contents/{PAGE_PATH}
       // https://github.com/${REPO_OWNER}/${REPO_NAME}.wiki.git
       // Base64-encode the markdown snippet
-      const base64Content = btoa(markdownSnippet);
+      //const base64Content = btoa(markdownSnippet);
 
       // First, try to GET the file to see if it exists (to get the current sha)
       fetch(url, {
@@ -166,14 +165,28 @@
         }
       })
       .then(data => {
+        let newContent;
+        if (data && data.content) {
+          // data.content is the Base64 encoded content of the file.
+          const existingContent = atob(data.content);
+          // Append the new markdown snippet to the existing content.
+          newContent = existingContent + "\n\n" + markdownSnippet;
+        } else {
+          // If the file does not exist, just use the new snippet as content.
+          newContent = markdownSnippet;
+        }
+        // Encode the new content in Base64.
+        const encodedNewContent = btoa(newContent);
+
         const payload = {
           message: "Update wiki with diagram markdown",
-          content: base64Content
+          content: encodedNewContent
         };
         if (data && data.sha) {
           payload.sha = data.sha;
         }
-        // Update (or create) the wiki page
+        
+        // Update (or create) the file with the new content.
         return fetch(url, {
           method: "PUT",
           headers: {
