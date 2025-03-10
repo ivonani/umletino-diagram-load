@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>GitHub UXF Uploader</title>
+  <title>GitHub UXF Uploader with Diagram Preview</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 600px;
+      max-width: 800px;
       margin: 0 auto;
       padding: 20px;
     }
@@ -32,14 +32,20 @@
     textarea {
       height: 100px;
     }
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
-  <h1>Upload UXF to GitHub</h1>
+  <h1>Upload UXF to GitHub and Preview Diagram</h1>
   <p>
-    Defaults: <strong>REPO_OWNER:</strong> ivonani, <strong>REPO_NAME:</strong> umletino-diagram-load
+    This application uploads a UXF (XML) file to your GitHub repository and then automatically displays a preview of the diagram using the UMLetino viewer.
   </p>
-
+  
   <label for="tokenInput">GitHub Token:</label>
   <input type="password" id="tokenInput" placeholder="Enter your GitHub token" />
 
@@ -52,15 +58,13 @@
   <textarea id="markdownOutput" readonly></textarea>
   <button id="copyButton">Copy Markdown to Clipboard</button>
 
-  <h2>UXF File Content Preview</h2>
-  <textarea id="fileContent" readonly style="height:300px;"></textarea>
+  <h2>Diagram Preview</h2>
+  <!-- The preview iframe where the diagram is rendered -->
+  <iframe id="diagramPreview"></iframe>
 
   <script>
-    // --- Attempt to extract REPO_OWNER and REPO_NAME from the URL ---
+    // --- Extract repository details from URL (or use defaults) ---
     const pathParts = window.location.pathname.split('/').filter(Boolean);
-    console.log("Path parts:", pathParts);
-
-    // Use defaults if extraction fails
     let REPO_OWNER = "ivonani";
     let REPO_NAME = "umletino-diagram-load";
     if (pathParts.length >= 2) {
@@ -71,14 +75,13 @@
     }
     console.log("Using repository:", REPO_OWNER, "/", REPO_NAME);
 
-    // --- Get references to DOM elements ---
+    // --- DOM Elements ---
     const tokenInput = document.getElementById("tokenInput");
     const fileInput = document.getElementById("fileInput");
     const uploadButton = document.getElementById("uploadButton");
     const markdownOutput = document.getElementById("markdownOutput");
     const copyButton = document.getElementById("copyButton");
-    const fileContentPreview = document.getElementById("fileContent");
-
+    const diagramPreview = document.getElementById("diagramPreview");
 
     // --- Function to upload UXF file ---
     function uploadUXF() {
@@ -95,14 +98,12 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         const textContent = e.target.result;
-        // Display the file content immediately
-        fileContentPreview.value = textContent;
-
+        // Instead of showing raw text, we will use the uploaded file URL for preview.
         // Base64 encode the text content
         let base64Content = btoa(textContent);
         base64Content = base64Content.replace(/\n/g, '').trim();
 
-        // Use the file's name as the target file path (you can also hard-code a filename)
+        // Use the file's name as the target file path
         const FILE_PATH = file.name;
         const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
         console.log("Uploading to:", apiUrl);
@@ -126,11 +127,11 @@
           if (data.content && data.content.download_url) {
             const downloadUrl = data.content.download_url;
             // Generate Markdown snippet using GitHub Pages URL
-            // e.g., https://ivonani.github.io/umletino-diagram-load/{FILE_PATH}
             const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH})`;
             markdownOutput.value = markdownSnippet;
-            // Automatically update the wiki page with the snippet
-            //updateWiki(markdownSnippet, token);
+            // Set preview: Assuming UMLetino viewer can load UXF via a query parameter 'uxfUrl'
+            const viewerUrl = "https://www.umletino.com/umletino.html?uxfUrl=" + encodeURIComponent(downloadUrl);
+            diagramPreview.src = viewerUrl;
           } else {
             alert("Error uploading UXF file: " + JSON.stringify(data));
           }
@@ -143,151 +144,9 @@
       reader.readAsText(file);
     }
 
-    // --- Function to Update Wiki via GitHub API ---
-    function updateWiki(markdownSnippet, token) {
-      // The wiki page we want to update is, for example, README.md.
-      const PAGE_PATH = "README.md";
-      const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${PAGE_PATH}`;
-      // https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}.wiki/contents/{PAGE_PATH}
-      // https://github.com/${REPO_OWNER}/${REPO_NAME}.wiki.git
-      // Base64-encode the markdown snippet
-      //const base64Content = btoa(markdownSnippet);
-
-      // First, try to GET the file to see if it exists (to get the current sha)
-      fetch(url, {
-        headers: {
-          "Authorization": "token " + token
-        }
-      })
-      .then(response => {
-        if (response.status === 200) {
-          return response.json();
-        } else if (response.status === 404) {
-          return null;
-        } else {
-          throw new Error("Error checking wiki file: " + response.status);
-        }
-      })
-      .then(data => {
-        let newContent;
-        if (data && data.content) {
-          // data.content is the Base64 encoded content of the file.
-          const existingContent = atob(data.content);
-          // Append the new markdown snippet to the existing content.
-          newContent = existingContent + "\n\n" + markdownSnippet;
-        } else {
-          // If the file does not exist, just use the new snippet as content.
-          newContent = markdownSnippet;
-        }
-        // Encode the new content in Base64.
-        const encodedNewContent = btoa(newContent);
-
-        const payload = {
-          message: "Update wiki with diagram markdown",
-          content: encodedNewContent
-        };
-        if (data && data.sha) {
-          payload.sha = data.sha;
-        }
-
-        // Update (or create) the file with the new content.
-        return fetch(url, {
-          method: "PUT",
-          headers: {
-            "Authorization": "token " + token,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log("File update response:", data);
-        if (data.content && data.content.download_url) {
-          alert("File updated! You can view it at: " + data.content.download_url);
-        } else {
-          alert("Error updating wiki: " + JSON.stringify(data));
-        }
-      })
-      .catch(err => {
-        console.error("Error updating wiki:", err);
-        alert("Error updating wiki: " + err.message);
-      });
-    }
-
     // --- Attach event listeners ---
     uploadButton.addEventListener("click", uploadUXF);
 
-    // --- Upload Button Click Handler ---
-    /*uploadButton.addEventListener("click", () => {
-      const token = tokenInput.value.trim();
-      if (!token) {
-        alert("Please enter your GitHub token.");
-        return;
-      }
-      if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please select an image file.");
-        return;
-      }
-      const file = fileInput.files[0];
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        // e.target.result is a Data URL (e.g., "data:image/png;base64,...")
-        const dataUrl = e.target.result;
-        // Extract base64 content from Data URL:
-        const base64Index = dataUrl.indexOf("base64,") + "base64,".length;
-        const base64Content = dataUrl.substring(base64Index);
-        base64Content = base64Content.replace(/\n/g, '').trim();
-        
-        // Use the file's name for the file path
-        const FILE_PATH = file.name;
-        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-        //const apiUrl = `https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH}`;
-        //https://${username}.github.io/umletino-diagram-load/diagram.png
-        console.log("API URL:", apiUrl);
-        
-        // Prepare payload for GitHub API:
-        const payload = {
-          message: "Upload image via GitHub Image Uploader",
-          content: base64Content
-        };
-
-        // Send PUT request to GitHub API:
-        fetch(apiUrl, {
-          method: "PUT",
-          headers: {
-            "Authorization": "token " + token,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log(data);
-          if (data.content && data.content.download_url) {
-            const downloadUrl = data.content.download_url;
-            //const urlObj = new URL(downloadUrl);
-            //const pathParts = urlObj.pathname.split('/'); // [ "", "ivonani", "umletino-diagram-load", "main", "image.png" ]
-            //const relativePath = pathParts.slice(2).join('/'); // "umletino-diagram-load/main/image.png"
-            // Generate Markdown snippet:
-            //const markdownSnippet = `![${FILE_PATH}](${downloadUrl})`;
-            const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH})`;
-            //(https://${username}.github.io/umletino-diagram-load/diagram.png)
-            markdownOutput.value = markdownSnippet;
-          } else {
-            alert("Error uploading image: " + JSON.stringify(data));
-          }
-        })
-        .catch(err => {
-          alert("Error: " + err.message);
-          console.error(err);
-        });
-      };
-      reader.readAsDataURL(file);
-    });*/
-
-    // --- Copy to Clipboard Button ---
     copyButton.addEventListener("click", () => {
       markdownOutput.select();
       document.execCommand("copy");
