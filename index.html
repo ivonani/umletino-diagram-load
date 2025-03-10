@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>GitHub Image Uploader</title>
+  <title>GitHub UXF Uploader</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -35,7 +35,7 @@
   </style>
 </head>
 <body>
-  <h1>Upload Image to GitHub</h1>
+  <h1>Upload UXF to GitHub</h1>
   <p>
     Defaults: <strong>REPO_OWNER:</strong> ivonani, <strong>REPO_NAME:</strong> umletino-diagram-load
   </p>
@@ -43,14 +43,14 @@
   <label for="tokenInput">GitHub Token:</label>
   <input type="password" id="tokenInput" placeholder="Enter your GitHub token" />
 
-  <label for="fileInput">Select an Image:</label>
-  <input type="file" id="fileInput" accept="image/*" />
+  <label for="fileInput">Select a UXF File:</label>
+  <input type="file" id="fileInput" accept=".uxf,application/xml" />
 
-  <button id="uploadButton">Upload Image</button>
+  <button id="uploadButton">Upload UXF</button>
 
   <h2>Markdown Snippet</h2>
   <textarea id="markdownOutput" readonly></textarea>
-  <button id="copyButton">Copy to Clipboard</button>
+  <button id="copyButton">Copy Markdown to Clipboard</button>
 
   <script>
     // --- Attempt to extract REPO_OWNER and REPO_NAME from the URL ---
@@ -74,25 +74,29 @@
     const uploadButton = document.getElementById("uploadButton");
     const markdownOutput = document.getElementById("markdownOutput");
     const copyButton = document.getElementById("copyButton");
+    const fileContentPreview = document.getElementById("fileContent");
 
 
-    function uploadImage() {
+    // --- Function to upload UXF file ---
+    function uploadUXF() {
       const token = tokenInput.value.trim();
       if (!token) {
         alert("Please enter your GitHub token.");
         return;
       }
       if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please select an image file.");
+        alert("Please select a UXF file.");
         return;
       }
       const file = fileInput.files[0];
       const reader = new FileReader();
       reader.onload = function(e) {
-        const dataUrl = e.target.result;
-        const base64Index = dataUrl.indexOf("base64,") + "base64,".length;
-        let base64Content = dataUrl.substring(base64Index);
-        // Clean the base64 string
+        const textContent = e.target.result;
+        // Display the file content immediately
+        fileContentPreview.value = textContent;
+
+        // Base64 encode the text content
+        let base64Content = btoa(textContent);
         base64Content = base64Content.replace(/\n/g, '').trim();
 
         // Use the file's name as the target file path (you can also hard-code a filename)
@@ -101,7 +105,7 @@
         console.log("Uploading to:", apiUrl);
 
         const payload = {
-          message: "Upload image via Wiki Image Uploader",
+          message: "Upload UXF via GitHub UXF Uploader",
           content: base64Content
         };
 
@@ -118,13 +122,14 @@
           console.log("Upload response:", data);
           if (data.content && data.content.download_url) {
             const downloadUrl = data.content.download_url;
-            // Generate the Markdown snippet for the uploaded image
+            // Generate Markdown snippet using GitHub Pages URL
+            // e.g., https://ivonani.github.io/umletino-diagram-load/{FILE_PATH}
             const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH})`;
             markdownOutput.value = markdownSnippet;
             // Automatically update the wiki page with the snippet
-            updateWiki(markdownSnippet, token);
+            //updateWiki(markdownSnippet, token);
           } else {
-            alert("Error uploading image: " + JSON.stringify(data));
+            alert("Error uploading UXF file: " + JSON.stringify(data));
           }
         })
         .catch(err => {
@@ -132,7 +137,7 @@
           alert("Error: " + err.message);
         });
       };
-      reader.readAsDataURL(file);
+      reader.readAsText(file);
     }
 
     // --- Function to Update Wiki via GitHub API ---
@@ -208,7 +213,7 @@
     }
 
     // --- Attach event listeners ---
-    uploadButton.addEventListener("click", uploadImage);
+    uploadButton.addEventListener("click", uploadUXF);
 
     // --- Upload Button Click Handler ---
     /*uploadButton.addEventListener("click", () => {
