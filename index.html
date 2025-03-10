@@ -52,6 +52,9 @@
   <textarea id="markdownOutput" readonly></textarea>
   <button id="copyButton">Copy Markdown to Clipboard</button>
 
+  <h2>UXF File Content Preview</h2>
+  <textarea id="fileContent" readonly style="height:300px;"></textarea>
+
   <script>
     // --- Attempt to extract REPO_OWNER and REPO_NAME from the URL ---
     const pathParts = window.location.pathname.split('/').filter(Boolean);
