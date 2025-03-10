@@ -131,6 +131,7 @@
             markdownOutput.value = markdownSnippet;
             // Set preview: Assuming UMLetino viewer can load UXF via a query parameter 'uxfUrl'
             const viewerUrl = "https://www.umletino.com/umletino.html?uxfUrl=" + encodeURIComponent(downloadUrl);
+            console.log("Viewer URL:", viewerUrl);
             diagramPreview.src = viewerUrl;
           } else {
             alert("Error uploading UXF file: " + JSON.stringify(data));
