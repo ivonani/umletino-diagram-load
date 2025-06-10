@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GitHub UXF Uploader with Diagram Preview</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    input, button, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    textarea {
+      height: 100px;
+    }
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Upload UXF to GitHub and Preview Diagram</h1>
+  <p>
+    This application uploads a UXF (XML) file to your GitHub repository and then automatically displays a preview of the diagram using the UMLetino viewer.
+  </p>
+  
+  <label for="tokenInput">GitHub Token:</label>
+  <input type="password" id="tokenInput" placeholder="Enter your GitHub token" />
+
+  <label for="fileInput">Select a UXF File:</label>
+  <input type="file" id="fileInput" accept=".uxf,application/xml" />
+
+  <button id="uploadButton">Upload UXF</button>
+
+  <h2>Markdown Snippet</h2>
+  <textarea id="markdownOutput" readonly></textarea>
+  <button id="copyButton">Copy Markdown to Clipboard</button>
+
+  <h2>Diagram Preview</h2>
+  <!-- The preview iframe where the diagram is rendered -->
+  <iframe id="diagramPreview"></iframe>
+
+  <script>
+    // --- Extract repository details from URL (or use defaults) ---
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    let REPO_OWNER = "ivonani";
+    let REPO_NAME = "umletino-diagram-load";
+    if (pathParts.length >= 2) {
+      REPO_OWNER = pathParts[pathParts.length - 2];
+      REPO_NAME = pathParts[pathParts.length - 1];
+    } else {
+      console.warn("Using default repository details.");
+    }
+    console.log("Using repository:", REPO_OWNER, "/", REPO_NAME);
+
+    // --- DOM Elements ---
+    const tokenInput = document.getElementById("tokenInput");
+    const fileInput = document.getElementById("fileInput");
+    const uploadButton = document.getElementById("uploadButton");
+    const markdownOutput = document.getElementById("markdownOutput");
+    const copyButton = document.getElementById("copyButton");
+    const diagramPreview = document.getElementById("diagramPreview");
+
+    // --- Function to upload UXF file ---
+    function uploadUXF() {
+      const token = tokenInput.value.trim();
+      if (!token) {
+        alert("Please enter your GitHub token.");
+        return;
+      }
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert("Please select a UXF file.");
+        return;
+      }
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const textContent = e.target.result;
+        // Instead of showing raw text, we will use the uploaded file URL for preview.
+        // Base64 encode the text content
+        let base64Content = btoa(textContent);
+        base64Content = base64Content.replace(/\n/g, '').trim();
+
+        // Use the file's name as the target file path
+        const FILE_PATH = file.name;
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+        console.log("Uploading to:", apiUrl);
+
+        const payload = {
+          message: "Upload UXF via GitHub UXF Uploader",
+          content: base64Content
+        };
+
+        fetch(apiUrl, {
+          method: "PUT",
+          headers: {
+            "Authorization": "token " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Upload response:", data);
+          if (data.content && data.content.download_url) {
+            const downloadUrl = data.content.download_url;
+            // Generate Markdown snippet using GitHub Pages URL
+            const markdownSnippet = `![${FILE_PATH}](https://${REPO_OWNER}.github.io/${REPO_NAME}/${FILE_PATH})`;
+            markdownOutput.value = markdownSnippet;
+            // Set preview: Assuming UMLetino viewer can load UXF via a query parameter 'uxfUrl'
+            
+            const viewerUrl = "http://127.0.0.1:8888/umletino.html";
+            //?uxfUrl=" + encodeURIComponent(downloadUrl);
+            console.log("Viewer URL:", viewerUrl);
+            diagramPreview.src = viewerUrl;
+          } else {
+            alert("Error uploading UXF file: " + JSON.stringify(data));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error: " + err.message);
+        });
+      };
+      reader.readAsText(file);
+    }
+
+    // --- Attach event listeners ---
+    uploadButton.addEventListener("click", uploadUXF);
+
+    copyButton.addEventListener("click", () => {
+      markdownOutput.select();
+      document.execCommand("copy");
+      alert("Markdown snippet copied to clipboard!");
+    });
+  </script>
+</body>
+</html>
